@@ -66,7 +66,7 @@ def loadheadlessly():
     options.add_argument('--headless')
     options.add_argument('--disable-gpu')
 #    options.add_argument("download.default_directory=")
-    browser = webdriver.Chrome("chromedriver.exe", options=options)
+    browser = webdriver.Chrome("chromedriver-v73.exe", options=options)
     browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
     params = {'cmd': 'Page.setDownloadBehavior', 'params': {'behavior': 'allow', 'downloadPath': "F:\dhyey\sem4 python project"}}
     browser.execute("send_command", params)
