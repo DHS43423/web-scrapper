@@ -9,12 +9,31 @@ import re
 
 import threading
 
+import os 
+
 from selenium import webdriver          #a quickfix for getting json data from 9xbuddy.org
 from time import sleep
 
 from mutagen.mp3 import EasyMP3         #External lib for adding metadata to audio files--> pip install mutagen
 
 from selenium.webdriver.chrome.options import Options
+
+def loadheadlessly():
+    ''' Loads Chrome headlessly with download settings '''
+    global browser
+    
+    #Taken from https://stackoverflow.com/a/47366981/8520798 for chrome download settings
+
+    options = Options()
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+#    options.add_argument("download.default_directory=")
+    browser = webdriver.Chrome("chromedriver-v73.exe", options=options)
+    browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
+    params = {'cmd': 'Page.setDownloadBehavior', 'params': {'behavior': 'allow', 'downloadPath': download_path}}
+    browser.execute("send_command", params)
+
+threading.Thread(target=loadheadlessly).start()
 
 root = Tk()
 root.title("Web Scrapper")
@@ -38,6 +57,7 @@ music_formats = ["mp3","m4a"]
 video_formats = ["mp4","mkv"]
 
 headers = {'User-Agent': 'Chrome/39.0.2171.95 Safari/537.36'}   #fake user-agent
+download_path = os.path.dirname(os.path.abspath(__file__))
 
 # Music
 url_soundCloud = None
@@ -56,20 +76,17 @@ def on_closing():
         browser.quit()
         root.destroy()
 
-def loadheadlessly():
-    ''' Loads Chrome headlessly with download settings '''
-    global browser
-    
-    #Taken from https://stackoverflow.com/a/47366981/8520798 for chrome download settings
-
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--disable-gpu')
-#    options.add_argument("download.default_directory=")
-    browser = webdriver.Chrome("chromedriver-v73.exe", options=options)
-    browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
-    params = {'cmd': 'Page.setDownloadBehavior', 'params': {'behavior': 'allow', 'downloadPath': "F:\downloads"}}   #CHANGE DOWNLOAD LOCATION HERE
-    browser.execute("send_command", params)
+def set_dwn_path():
+    global download_path
+    download_path_get = dwn_path_entry.get()
+    if not download_path_get:
+        download_path = os.path.dirname(os.path.abspath(__file__))
+    else:
+        if(os.path.isdir(download_path_get)):
+            download_path = download_path_get
+        else:
+            messagebox.showerror("Incorrect Directory","Please check the path")
+            download_path = os.path.dirname(os.path.abspath(__file__))
     
 def dwnheadlessly(fmovies):
     ''' Get final download links for movies  '''
@@ -104,7 +121,7 @@ def downloadit(dwn_url):
     try:
         if(selectedchoice == 1):
             nm = file_name_inp.get()+".mp3"
-            urllib.request.urlretrieve(dwn_url, nm)
+            urllib.request.urlretrieve(dwn_url, download_path+"/"+ nm)
             status_3.configure(text="..download started",foreground="green")
         else:
             browser.get(dwn_url)
@@ -119,7 +136,7 @@ def addmeta():
     dwn_thread.join()
     status_4.configure(text="..download complete",foreground="green")
 
-    audio = EasyMP3(file_name_inp.get()+".mp3")
+    audio = EasyMP3(download_path+"/"+file_name_inp.get()+".mp3")
     audio["title"] = file_title_inp.get()
     audio["artist"] = file_artist_inp.get()
     audio["album"] = file_album_inp.get()
@@ -293,11 +310,17 @@ label_1 = Label(sidePane,text="Select Your Choice")
 music = Radiobutton(sidePane, text="Music", value=1,variable=v,command=sel)
 video = Radiobutton(sidePane, text="Movie", value=2,variable=v,command=sel)
 label_2 = Label(sidePane,text="mp3\nm4a")
+dwn_path = Label(sidePane,text="Enter Download path:")
+dwn_path_entry = Entry(sidePane)
+dwn_path_button = Button(sidePane,text="Set",command=set_dwn_path)
 
 label_1.grid(row=0,pady=10)
 music.grid(row=1,pady=10)
 video.grid(row=2,pady=10)
 label_2.grid(row=1,column=2,rowspan=2,pady=10)
+dwn_path.grid(column=0,row=3,columnspan=3)
+dwn_path_entry.grid(column=0,row=4)
+dwn_path_button.grid(column=0,row=5)
 
 center_label = Label(centerPane,text="Enter MUSIC name here")
 center_entry = Entry(centerPane)
@@ -361,7 +384,6 @@ labels.append(status_2)
 labels.append(status_3)
 labels.append(status_4)
 
-threading.Thread(target=loadheadlessly).start()
 root.protocol("WM_DELETE_WINDOW",on_closing)
 
 root.mainloop()
