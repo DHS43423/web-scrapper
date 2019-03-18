@@ -9,6 +9,8 @@ import re
 
 import threading
 
+from collections import OrderedDict
+
 import os 
 
 from selenium import webdriver          #a quickfix for getting json data from 9xbuddy.org
@@ -271,7 +273,7 @@ def search():
                 name = url_soundCloud[i]
                 url_soundCloud[i] = name[:-11]
 
-        url_soundCloud = list(set(url_soundCloud))                  #remove duplicates
+        url_soundCloud = list(OrderedDict.fromkeys(url_soundCloud))                  #remove duplicates
         
         l = len(url_soundCloud)
         if(l>10):
